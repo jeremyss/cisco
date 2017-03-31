@@ -1,0 +1,76 @@
+#! /usr/bin/expect
+#set user
+#set password
+
+#Get username and password
+send_user "Username: "
+expect_user -re "(.*)\n" {set user $expect_out(1,string)}
+send_user "Password: "
+stty -echo
+expect_user -re "(.*)\n" {set password $expect_out(1,string)}
+send_user "\n"
+stty echo
+#End get username and password
+
+set timeout 2
+set prompt "#"  ;# -- main activity
+set DATE [exec date +%m-%d-%y]
+proc dostuff { commands } {
+;# do something with currenthost
+send -- "terminal length 0\r"
+expect "#"
+#run commands in commands file
+foreach commnd [split $commands "\n"] {
+send -- "$commnd\r"
+expect "#"
+}
+#End run commands in commands file
+#send -- "show int description | i ^Vl\r"
+return}   ;# -- start of task
+
+#Open hosts file
+set hostsFile [lindex $argv 0]
+set fd [open $hostsFile r]
+set hosts [read -nonewline $fd]
+close $fd
+#End open hosts file
+
+#Open commands file
+set commandsFile [lindex $argv 1]
+set fd [open $commandsFile r]
+set commands [read -nonewline $fd]
+close $fd
+#End open commands file
+
+foreach host [split $hosts "\n" ] {
+spawn /usr/bin/telnet $host
+  while (1) {
+    expect  {
+        "sername: " {
+            send -- "$user\r"
+    }
+    "assword: " {
+        send -- "$password\r"
+    }
+	"ogin: " {
+            send -- "$user\r"
+    }
+    "assword: " {
+        send -- "$password\r"
+    }
+    "$prompt" {
+        dostuff { $commands }
+	set writeout [open "$host-interfaces-$DATE.txt" "w"]
+	expect "#"
+	set outcome $expect_out(buffer)
+	puts $writeout $outcome
+	close $writeout
+        break
+    }
+     }
+  }
+
+expect "$prompt"
+send -- "exit\r"
+}
+expect eof
