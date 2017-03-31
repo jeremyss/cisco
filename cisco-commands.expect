@@ -1,6 +1,4 @@
-#! /usr/bin/expect
-#set user
-#set password
+#!/usr/bin/expect
 
 #Get username and password
 send_user "Username: "
@@ -23,9 +21,9 @@ expect "#"
 foreach commnd [split $commands "\n"] {
 send -- "$commnd\r"
 expect "#"
+send -- "\r"
 }
 #End run commands in commands file
-#send -- "show int description | i ^Vl\r"
 return}   ;# -- start of task
 
 #Open hosts file
@@ -59,7 +57,7 @@ spawn /usr/bin/telnet $host
         send -- "$password\r"
     }
     "$prompt" {
-        dostuff { $commands }
+        dostuff $commands
 	set writeout [open "$host-interfaces-$DATE.txt" "w"]
 	expect "#"
 	set outcome $expect_out(buffer)

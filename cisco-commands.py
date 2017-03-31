@@ -15,11 +15,15 @@ def connect(host, username, password):
         print "SSH failed, trying telnet\n"
     try:
         chan = pexpect.spawn("telnet " + host, timeout=10)
-        chan.expect(r"sername:.*")
+        chan.expect('Username:.*')
         chan.sendline(username)
-        chan.expect(r"assword:.*")
+        print chan.before
+        chan.expect('Password:.*')
         chan.sendline(password)
-        chan.expect('#')
+        print chan.before
+        chan.expect(r'[0-9A-Za-z]#.*')
+        chan.sendline("show int descr")
+        chan.expect(['^[0-9A-Za-z]#.*'])
         chan.sendline("exit")
         return output
     except pexpect.ExceptionPexpect:
