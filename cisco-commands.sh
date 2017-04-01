@@ -9,7 +9,6 @@ if { [lindex $argv 0] == "-h" || [lindex $argv 0] == "--help" } {
     exit 1;
 }
 
-
 #Get username and password
 send_user "Username: "
 expect_user -re "(.*)\n" {set user $expect_out(1,string)}
@@ -20,20 +19,21 @@ send_user "\n"
 stty echo
 #End get username and password
 
-set timeout 5
 set prompt "#"  ;# -- main activity
 set DATE [exec date +%0m-%0d-%0y-%0H-%0M-%0S]
 
 proc dostuff { query DATE host commands } {
 ;# do something with currenthost
+    send -- "\r"
+    expect "#"
     send -- "terminal length 0\r"
     expect "#"
     #run commands in commands file
     foreach commnd [split $commands "\n"] {
-        exp_log_file -a $host-$query-$DATE.txt
         send -- "$commnd\r"
         expect "#"
         send -- "\r"
+        expect "#"
     }
     #End run commands in commands file
 return}   ;# -- start of task
@@ -57,9 +57,15 @@ set query [lindex $argv 2]
 #End set file name
 
 foreach host [split $hosts "\n" ] {
+    set timeout 5
     spawn /usr/bin/telnet $host
         while (1) {
             expect  {
+                timeout {
+                    set tof [open $host-$query-timed-out-$DATE.txt w]
+                    close $tof
+                    break
+                }
                 "sername: " {
                     send -- "$user\r"
                 }
@@ -73,7 +79,9 @@ foreach host [split $hosts "\n" ] {
                     send -- "$password\r"
                 }
                 "$prompt" {
+                    exp_log_file -a $host-$query-$DATE.txt
                     dostuff $query $DATE $host $commands
+                    exp_log_file
 	                break
                 }
             }
